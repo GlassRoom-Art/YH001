@@ -10,6 +10,8 @@ from thready import amap
 import os
 import threading
 
+from differ import *
+
 canvaslock = threading.Lock()
 canvaslock.acquire()
 canvaslock.release()
@@ -24,7 +26,7 @@ def lockgen(canvas,ym,yp,xm,xp):
     # if riding:
     #     reutrn canvaslock:
     pass
-def load(filename='baby.jpg'):
+def load(filename='origin.jpeg'):
     print('loading',filename,'...')
     global imname,flower,canvas,hist
     global rescale,xs_small,ys_small,smallerflower
@@ -62,6 +64,9 @@ def load(filename='baby.jpg'):
 
 load()
 
+global m_differ
+m_differ = Differ(flower.shape[0], flower.shape[1])
+
 def rn():
     return random.random()
 
@@ -71,7 +76,7 @@ def showimg():
     else:
         smallercanvas = cv2.resize(canvas,dsize=(xs_small,ys_small),interpolation=cv2.INTER_NEAREST)
 
-    i,j,d = wherediff(smallercanvas,smallerflower)
+    i,j,d = m_differ.wherediff(smallercanvas,smallerflower)
     sd = np.mean(d)
     print('mean diff:',sd)
 
@@ -88,45 +93,45 @@ def showimg():
 def destroy():
     cv2.destroyAllWindows()
 
-def positive_sharpen(i,overblur=False,coeff=8.): #no darken to original image
-    # emphasize the edges
-    blurred = cv2.blur(i,(5,5))
-    sharpened = i + (i - blurred) * coeff
-    if overblur:
-        return cv2.blur(np.maximum(sharpened,i),(11,11))
-    return cv2.blur(np.maximum(sharpened,i),(3,3))
+#def positive_sharpen(i,overblur=False,coeff=8.): #no darken to original image
+    ## emphasize the edges
+    #blurred = cv2.blur(i,(5,5))
+    #sharpened = i + (i - blurred) * coeff
+    #if overblur:
+        #return cv2.blur(np.maximum(sharpened,i),(11,11))
+    #return cv2.blur(np.maximum(sharpened,i),(3,3))
 
-def diff(i1,i2,overblur=False):
-    #calculate the difference of 2 float32 BGR images.
+#def diff(i1,i2,overblur=False):
+    ##calculate the difference of 2 float32 BGR images.
 
-    # # use lab
-    # i1=i1.astype(np.float32)
-    # i2=i2.astype(np.float32)
-    # lab1 = cv2.cvtColor(i1,cv2.COLOR_BGR2LAB)
-    # lab2 = cv2.cvtColor(i2,cv2.COLOR_BGR2LAB)
-    # d = lab1-lab2
-    # d = d*d / 10000
+    ## # use lab
+    ## i1=i1.astype(np.float32)
+    ## i2=i2.astype(np.float32)
+    ## lab1 = cv2.cvtColor(i1,cv2.COLOR_BGR2LAB)
+    ## lab2 = cv2.cvtColor(i2,cv2.COLOR_BGR2LAB)
+    ## d = lab1-lab2
+    ## d = d*d / 10000
 
-    # # use rgb
-    d = (i1-i2)# * [0.2,1.5,1.3]
-    d = d*d
+    ## # use rgb
+    #d = (i1-i2)# * [0.2,1.5,1.3]
+    #d = d*d
+    
+    #d = positive_sharpen(np.sum(d,-1),overblur=overblur)
+    #return d
+    ## grayscalize
 
-    d = positive_sharpen(np.sum(d,-1),overblur=overblur)
-    return d
-    # grayscalize
+#def wherediff(i1=None,i2=None):
+    #global canvas,flower
+    #if i1 is None:
+        #i1 = canvas
+    #if i2 is None:
+        #i2 = flower
 
-def wherediff(i1=None,i2=None):
-    global canvas,flower
-    if i1 is None:
-        i1 = canvas
-    if i2 is None:
-        i2 = flower
+    ## find out where max difference point is.
+    #d = diff(i1,i2,overblur=True)
 
-    # find out where max difference point is.
-    d = diff(i1,i2,overblur=True)
-
-    i,j = np.unravel_index(d.argmax(),d.shape)
-    return i,j,d
+    #i,j = np.unravel_index(d.argmax(),d.shape)
+    #return i,j,d
 
 def get_random_color():
     return np.array([rn(),rn(),rn()]).astype('float32')
@@ -280,7 +285,7 @@ def paint_one(x,y,brushname='random',angle=-1.,minrad=10,maxrad=60):
         rb.compose(aftr,brush,x=radius,y=radius,rad=radius,srad=srad,angle=angle,color=color,usefloat=True,useoil=False)
         # if useoil here set to true: 2x slow down + instability
 
-        err_aftr = np.mean(diff(aftr,ref))
+        err_aftr = np.mean(m_differ.diff(aftr,ref))
         return err_aftr
 
     # finally paint the same stroke onto the canvas.
@@ -335,7 +340,7 @@ def paint_one(x,y,brushname='random',angle=-1.,minrad=10,maxrad=60):
         try: # might have error
             # what is the error at ROI?
             ref,bef,aftr = get_roi(x,y,oradius)
-            orig_err = np.mean(diff(bef,ref))
+            orig_err = np.mean(m_differ.diff(bef,ref))
 
             # do the painting
             err = paint_aftr_w(c,angle,x,y,oradius)
@@ -379,9 +384,11 @@ def putstrokes(howmany):
 
     def samplepoints():
         # sample a lot of points from one error image - save computation cost
-
+        #global m_differ, flower, canvas
+        
         point_list = []
-        y,x,d = wherediff()
+        y,x,d = m_differ.wherediff(flower, canvas)
+
         phasemap = gradient.get_phase(flower)
 
         # while not enough points:
