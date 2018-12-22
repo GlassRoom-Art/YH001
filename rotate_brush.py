@@ -39,7 +39,8 @@ def rotate_brush(brush,rad,srad,angle):
     # to compensate for the patch smaller than the original ellipse
 
     rad = int(rad*(1.+osf))
-    srad = int(srad*(1.+osf))
+    #srad = int(srad*(1.+osf))
+    srad = bw
 
     # 1. scale
     orig_points = np.array([[bw/2,0],[0,bh/2],[bw,bh/2]]).astype('float32')
