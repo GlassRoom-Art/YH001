@@ -66,18 +66,32 @@ class Differ():
         i1_in = np.expand_dims(i1,0)
         i2_in = np.expand_dims(i2,0)
         
-        with tf.device('/gpu:1'):
-            canvas_f, target_f = self.sess.run([self.canvas_f, self.target_f], feed_dict ={self.canvas:i1_in, self.target:i2_in})
+        # with tf.device('/gpu:1'):
+        canvas_f, target_f = self.sess.run([self.canvas_f, self.target_f], feed_dict ={self.canvas:i1_in, self.target:i2_in})
             
-            d = (canvas_f - target_f)
-            d = d*d
+        d = (canvas_f - target_f)
+        d = d*d
             
-            d = np.squeeze(d,0)
-            d = np.mean(d, -1)*0.012
+        d = np.squeeze(d,0)
+        d = np.mean(d, -1)*0.012
             
-            d = self.positive_sharpen(d,overblur=overblur)
+        d = self.positive_sharpen(d,overblur=overblur)
         
         return d
+
+    def new_diff(self, i1=None, i2=None, alpha=0.4):
+        dd = self.diff_vgg(i1,i2,overblur=True)
+        
+        dd_w = i1.shape[0]
+        dd_h = i1.shape[1]
+        dd_r = cv2.resize(dd,(dd_h, dd_w))
+        
+        # find out where max difference point is.
+        d = self.diff(i1,i2,overblur=True)
+        
+        d_mean = dd_r*alpha + d*(1.0-alpha)
+
+        return d_mean
 
     def wherediff(self, i1=None, i2=None, alpha=0.4):
         dd = self.diff_vgg(i1,i2,overblur=True)

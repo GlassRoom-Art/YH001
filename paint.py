@@ -135,7 +135,7 @@ class paint():
             self.m_Brush.compose(aftr,brush,x=radius,y=radius,rad=radius,srad=srad,angle=angle,color=color,N=0,idx=self.index,usefloat=True,useoil=False)
             # if useoil here set to true: 2x slow down + instability
 
-            err_aftr = np.mean(self.m_Differ.diff(aftr,ref))
+            err_aftr = np.mean(self.m_Differ.new_diff(aftr,ref))
             return err_aftr
 
         # finally paint the same stroke onto the canvas.
@@ -195,7 +195,7 @@ class paint():
             try: # might have error
                 # what is the error at ROI?
                 ref,bef,aftr = get_roi(x,y,oradius)
-                orig_err = np.mean(self.m_Differ.diff(bef,ref))
+                orig_err = np.mean(self.m_Differ.new_diff(bef,ref))
 
                 # do the painting
                 err = paint_aftr_w(c,angle,x,y,oradius)

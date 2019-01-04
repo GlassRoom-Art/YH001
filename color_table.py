@@ -58,8 +58,8 @@ class Colors():
         x1 =  V_1 * S_1 * math.cos(H_1 / 180 * math.pi)
         y1 =  V_1 * S_1 * math.sin(H_1 / 180 * math.pi)
         # z1 = h * (1 - V_1)
-        x2 =  V_2 * S_1 * math.cos(H_2 / 180 * math.pi)
-        y2 =  V_2 * S_1 * math.sin(H_2 / 180 * math.pi)
+        x2 =  V_2 * S_2 * math.cos(H_2 / 180 * math.pi)
+        y2 =  V_2 * S_2 * math.sin(H_2 / 180 * math.pi)
         # z2 = h * (1 - V_2)
         dx = x1 - x2
         dy = y1 - y2
@@ -224,8 +224,7 @@ class Colors():
             a1 = digit.index(value[1]) * 16 + digit.index(value[2])
             a2 = digit.index(value[3]) * 16 + digit.index(value[4])
             a3 = digit.index(value[5]) * 16 + digit.index(value[6])
-            value = (a3/255.,a2/255.,a1/255.)
-            #value = rgb2hsv(value)
+            value = self.rgb2hsv((a3/255.,a2/255.,a1/255.))
             self.color_table[key]=value
         ###change dict to list
         self.color_table_key = list(self.color_table.keys())
@@ -244,12 +243,12 @@ class Colors():
     def find_nearest_color(self,color_BGR):
         color_hsv=self.rgb2hsv(color_BGR)
         color_diff_list = []
+        #print(self.color_table_value)
         for color_f in self.colors:
             #colors_hsv=rgb2hsv(color_f)
             color_diff = self.HSVDistance(color_f, color_hsv)
             color_diff_list.append(color_diff)
         color_index = color_diff_list.index(min(color_diff_list))
         nearest_color = self.hsv2rgb(self.colors[color_index])
-        #print(nearest_color)
         return nearest_color
 
