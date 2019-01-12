@@ -66,14 +66,17 @@ class Differ():
         i1_in = np.expand_dims(i1,0)
         i2_in = np.expand_dims(i2,0)
         
-        # with tf.device('/gpu:1'):
-        canvas_f, target_f = self.sess.run([self.canvas_f, self.target_f], feed_dict ={self.canvas:i1_in, self.target:i2_in})
+        with tf.device('/gpu:1'):
+            canvas_f, target_f = self.sess.run([self.canvas_f, self.target_f], feed_dict ={self.canvas:i1_in, self.target:i2_in})
             
-        d = (canvas_f - target_f)
-        d = d*d
+            print("canvas_f shape:", canvas_f.shape)
+            print("target_f shape:", target_f.shape)
             
-        d = np.squeeze(d,0)
-        d = np.mean(d, -1)*0.012
+            d = (canvas_f - target_f)
+            d = d*d
+                
+            d = np.squeeze(d,0)
+            d = np.mean(d, -1)*0.012
             
         d = self.positive_sharpen(d,overblur=overblur)
         
