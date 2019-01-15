@@ -5,7 +5,8 @@ import random
 import color_table as tb
 import sys
 import time
-  
+
+
 def rn():
     return random.random()
 
@@ -526,6 +527,7 @@ def compose(orig,brush, x,y,rad,srad,angle,color,N,idx=0,usefloat=False,useoil=F
 
             #final loading of roi.
             roi=orig[ym:yp,xm:xp]
+            # global count, pre_len, p_diff
 
             if usefloat:
                 #roi = b2p(roi)

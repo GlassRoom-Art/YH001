@@ -1,0 +1,7 @@
+*.png
+*.pyc
+baby/
+brushes/
+face3/
+__pycache__
+vgg/
