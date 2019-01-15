@@ -5,7 +5,7 @@ import random
 import color_table as tb
 import sys
 import time
-
+  
 def rn():
     return random.random()
 
