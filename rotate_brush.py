@@ -6,7 +6,6 @@ import color_table as tb
 import sys
 import time
 
-
 def rn():
     return random.random()
 
@@ -39,35 +38,32 @@ class Brushes():
 
         bh,bw = brush.shape[0:2]
     
-        osf = 0.1
+        #osf = 0.1
         # oversizefactor: ratio of dist-to-edge to width,
         # to compensate for the patch smaller than the original ellipse
 
-        rad = int(rad*(1.+osf))
+        #rad = int(rad*(1.+osf))
+        rad= int(rad) 
         srad=bw//2
         #srad = int(srad*(1.+osf))
-
+        max_size = max(rad*2,srad*2)
         # 1. scale
         orig_points = np.array([[bw/2,0],[0,bh/2],[bw,bh/2]]).astype('float32')
         # x,y of top left right
         translated = np.array([[rad,0],[rad-srad,rad],[rad+srad,rad]]).astype('float32')
         # affine transform matrix
+
         at = cv2.getAffineTransform(orig_points,translated)
         at = np.vstack([at,[0,0,1.]])
+        res1 = cv2.warpAffine(brush,at[0:2,:],(max_size,max_size))
 
         # 2. rotate
-        rm = cv2.getRotationMatrix2D((rad,rad),angle-90,1)
-        # per document:
-        # angle – Rotation angle in degrees. Positive values mean counter-clockwise rotation (the coordinate origin is assumed to be the top-left corner).
-        # stroke image should point eastwards for 0 deg, hence the -90
+        rm = cv2.getRotationMatrix2D((max_size//2,max_size//2),angle-90,1)
         rm = np.vstack([rm,[0,0,1.]])
+        res2 = cv2.warpAffine(res1,rm[0:2,:],(max_size,max_size))
+        #res = cv2.warpAffine(brush,cb[0:2,:],(max_size,max_size))
 
-        # 3. combine 2 affine transform
-        cb = np.dot(rm,at)
-
-        # 4. do the transform
-        res = cv2.warpAffine(brush,cb[0:2,:],(rad*2,rad*2))
-        ret1, res = cv2.threshold(res, 127, 255, cv2.THRESH_BINARY)
+        ret1, res = cv2.threshold(res2, 127, 255, cv2.THRESH_BINARY)
         return res
 
     def lc(self,i): #low clip
@@ -527,7 +523,6 @@ def compose(orig,brush, x,y,rad,srad,angle,color,N,idx=0,usefloat=False,useoil=F
 
             #final loading of roi.
             roi=orig[ym:yp,xm:xp]
-            # global count, pre_len, p_diff
 
             if usefloat:
                 #roi = b2p(roi)

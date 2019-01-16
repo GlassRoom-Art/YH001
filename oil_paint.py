@@ -1,6 +1,5 @@
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
-print("set CUDA device!!!")
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 print('importing packages...')
 from paint import *

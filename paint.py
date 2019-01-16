@@ -5,7 +5,6 @@ import time
 import json
 import gradient
 import os
-
 import math
 
 from rotate_brush import *
@@ -97,7 +96,7 @@ class paint():
         cv2.waitKey(10)
 
     
-    def paint_one(self,x,y,brushname='random',angle=-1.,minrad=24,maxrad=128,round=1):
+    def paint_one(self,x,y,brushname='random',angle=-1.,minrad=10,maxrad=60,round=1):
         
         oradius = math.exp(-(round+1)**2)*rn()*rn()*maxrad+minrad
         fatness = 1/(1+rn()*rn()*6)
@@ -179,82 +178,6 @@ class paint():
             gradius = err_aftr - err
 
             return np.array([gb,gg,gr])/delta,ga/5,gx/2,gy/2,gradius/3,err
-        
-        def calc_gradient_batch(err):
-            b,g,r = c[0],c[1],c[2]
-            cc = b,g,r
-
-            radius_radius,srad_radius = intrad(oradius+3)
-            ref_radius,bef_radius,aftr_radius = get_roi(x,y,oradius+3)
-            self.m_Brush.compose(aftr_radius,brush,x=radius_radius,y=radius_radius,rad=radius_radius,srad=srad_radius,angle=angle,color=cc,N=0,idx=self.index,usefloat=True,useoil=False)
-
-            radius,srad = intrad(oradius)
-            ref_b,bef_b,aftr_b = get_roi(x,y,oradius)
-            ref_b=cv2.resize(ref_b,(ref_radius.shape[1],ref_radius.shape[0]))
-            aftr_b=cv2.resize(aftr_b,(ref_radius.shape[1],ref_radius.shape[0]))
-            self.m_Brush.compose(aftr_b,brush,x=radius,y=radius,rad=radius,srad=srad,angle=angle,color=(b+delta,g,r),N=0,idx=self.index,usefloat=True,useoil=False)
-
-            ref_g,bef_g,aftr_g = get_roi(x,y,oradius)
-            ref_g=cv2.resize(ref_g,(ref_radius.shape[1],ref_radius.shape[0]))
-            aftr_g=cv2.resize(aftr_g,(ref_radius.shape[1],ref_radius.shape[0]))
-            self.m_Brush.compose(aftr_g,brush,x=radius,y=radius,rad=radius,srad=srad,angle=angle,color=(b,g+delta,r),N=0,idx=self.index,usefloat=True,useoil=False)
-
-            ref_r,bef_r,aftr_r = get_roi(x,y,oradius)
-            ref_r=cv2.resize(ref_r,(ref_radius.shape[1],ref_radius.shape[0]))
-            aftr_r=cv2.resize(aftr_r,(ref_radius.shape[1],ref_radius.shape[0]))
-            self.m_Brush.compose(aftr_r,brush,x=radius,y=radius,rad=radius,srad=srad,angle=angle,color=(b,g,r+delta),N=0,idx=self.index,usefloat=True,useoil=False)
-
-            ref_a,bef_a,aftr_a = get_roi(x,y,oradius)
-            ref_a=cv2.resize(ref_a,(ref_radius.shape[1],ref_radius.shape[0]))
-            aftr_a=cv2.resize(aftr_a,(ref_radius.shape[1],ref_radius.shape[0]))
-            self.m_Brush.compose(aftr_a,brush,x=radius,y=radius,rad=radius,srad=srad,angle=(angle+5.)%360,color=cc,N=0,idx=self.index,usefloat=True,useoil=False)
-
-            ref_x,bef_x,aftr_x = get_roi(x+2,y,oradius)
-            ref_x=cv2.resize(ref_x,(ref_radius.shape[1],ref_radius.shape[0]))
-            aftr_x=cv2.resize(aftr_x,(ref_radius.shape[1],ref_radius.shape[0]))
-            self.m_Brush.compose(aftr_x,brush,x=radius,y=radius,rad=radius,srad=srad,angle=angle,color=cc,N=0,idx=self.index,usefloat=True,useoil=False)
-
-            ref_y,bef_y,aftr_y = get_roi(x,y+2,oradius)
-            ref_y=cv2.resize(ref_y,(ref_radius.shape[1],ref_radius.shape[0]))
-            aftr_y=cv2.resize(aftr_y,(ref_radius.shape[1],ref_radius.shape[0]))
-            self.m_Brush.compose(aftr_y,brush,x=radius,y=radius,rad=radius,srad=srad,angle=angle,color=cc,N=0,idx=self.index,usefloat=True,useoil=False)
-
-
-            # print("ref_b shape: ",ref_b.shape)
-            # print("ref_g shape: ",ref_g.shape)
-            # print("ref_r shape: ",ref_r.shape)
-            # print("ref_a shape: ",ref_a.shape)
-            # print("ref_x shape: ",ref_x.shape)
-            # print("ref_y shape: ",ref_y.shape)
-            # print("ref_radius shape: ",ref_radius.shape)
-            i1_in = np.stack((ref_b,ref_g,ref_r,ref_a,ref_x,ref_y,ref_radius))
-            i2_in = np.stack((aftr_b,aftr_g,aftr_r,aftr_a,aftr_x,aftr_y,aftr_radius))
-
-            errs_after = self.m_Differ.diff_vgg_batch(i1_in,i2_in)
-            err_aftr_b,err_aftr_g,err_aftr_r,err_aftr_a,err_aftr_x,err_aftr_y,err_aftr_radius = np.split(errs_after,7,axis=0)
-
-            # print("err_aftr_b shape: ",err_aftr_b.shape)
-
-                        # print("err_aftr_b shape: ",err_aftr_b.shape)
-
-            gb = np.mean(err_aftr_b.squeeze() - err)
-
-            # print("gb shape: ",gb.shape)
-
-            gg = np.mean(err_aftr_g.squeeze() - err)
-
-            gr = np.mean(err_aftr_r.squeeze() - err)
-
-            ga = np.mean(err_aftr_a.squeeze() - err)
-
-            gx =  np.mean(err_aftr_x.squeeze() - err)
-
-            gy =  np.mean(err_aftr_y.squeeze() - err)
-
-            gradius = np.mean(err_aftr_radius.squeeze() - err)
-
-
-            return np.array([gb,gg,gr])/delta,ga/5,gx/2,gy/2,gradius/3,err
 
         
         radius,srad = intrad(oradius)
@@ -266,7 +189,7 @@ class paint():
         c = self.img[int(y),int(x),:]
         c = self.m_Colors.find_nearest_color(c)
         # max and min steps for gradient descent
-        tryfor = 10
+        tryfor = 20
         mintry = 3
 
         for i in range(tryfor):
@@ -279,13 +202,13 @@ class paint():
                 err = paint_aftr_w(c,angle,x,y,oradius)
 
                 #if err * math.exp(1/(round+2)**2) <orig_err  and i > mintry:
-                if err*1.1 < orig_err and i > mintry:
+                if err < orig_err and i > mintry:
                     paint_final_w(c,angle,oradius)
                     return True,i
 
                 # if not satisfactory
                 # calculate gradient
-                grad,anglegrad,gx,gy,gradius,err = calc_gradient_batch(err)
+                grad,anglegrad,gx,gy,gradius,err = calc_gradient(err)
 
             except NameError as e:
                 print(e)
@@ -386,7 +309,7 @@ class paint():
 
             # average step of gradient descent performed
             avgstep=0.
-   
+
             for k in range(loopfor):
                 res = self.putstrokes(paranum,round) # res is a map of results
 

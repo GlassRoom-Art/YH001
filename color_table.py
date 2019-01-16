@@ -1,5 +1,5 @@
 import math
-######
+
 class Colors():
     def __init__(self):
         self.colors=[]
@@ -25,7 +25,6 @@ class Colors():
         elif hi == 3: r, g, b = p, q, v
         elif hi == 4: r, g, b = t, p, v
         elif hi == 5: r, g, b = v, p, q
-        #r, g, b = int(r * 255), int(g * 255), int(b * 255)
         return (b, g, r)
 
     def rgb2hsv(self,color_bgr):
@@ -238,17 +237,18 @@ class Colors():
             a2=color[1]/255.
             a3=color[2]/255.
             c=(a3,a2,a1)
-            self.colors.append(self.rgb2hsv(c))
+            self.colors.append(c)
 
     def find_nearest_color(self,color_BGR):
         color_hsv=self.rgb2hsv(color_BGR)
         color_diff_list = []
         #print(self.color_table_value)
-        for color_f in self.colors:
+        for color in self.colors:
             #colors_hsv=rgb2hsv(color_f)
-            color_diff = self.HSVDistance(color_f, color_hsv)
+            color=self.rgb2hsv(color)
+            color_diff = self.HSVDistance(color, color_hsv)
             color_diff_list.append(color_diff)
         color_index = color_diff_list.index(min(color_diff_list))
-        nearest_color = self.hsv2rgb(self.colors[color_index])
+        nearest_color = self.colors[color_index]
         return nearest_color
 
