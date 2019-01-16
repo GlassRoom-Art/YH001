@@ -1,45 +1,53 @@
-import tensorflow as tf
+# import tensorflow as tf
+import torch
 import numpy as np
 import os
 import time
 
 import cv2
 
-import vgg.vgg_simple as vgg
+# import vgg.Vgg16 as Vgg16
+from vgg.vgg import Vgg16
 import scipy.misc as scm
 
-slim = tf.contrib.slim
+# slim = tf.contrib.slim
+
+mse_loss = torch.nn.MSELoss(reduce=False, size_average=False)
 
 class Differ():
-    def __init__(self, img_w, img_h):
-        self.sess = tf.Session()
+    def __init__(self, img_w, img_h, is_cuda=True):
+        # self.sess = tf.Session()
         
         self.img_w = img_w
         self.img_h = img_h
         
-        self.build_vgg()
+        # self.build_vgg()
 
-    def build_vgg(self):
-        self.canvas = tf.placeholder(tf.float32, [1, None, None, 3])
-        self.target = tf.placeholder(tf.float32, [1, None, None, 3])
+        self.device = torch.device("cuda" if is_cuda else "cpu")
+
+        self.vgg = Vgg16(requires_grad=False).to(self.device)
+
+    # def build_vgg(self):
+    #     self.canvas = tf.placeholder(tf.float32, [1, None, None, 3])
+    #     self.target = tf.placeholder(tf.float32, [1, None, None, 3])
         
-        with slim.arg_scope(vgg.vgg_arg_scope()):
+    #     with slim.arg_scope(vgg.vgg_arg_scope()):
     
-            f1, f2, f3, f4, exclude = vgg.vgg_16(tf.concat([self.canvas, self.target], axis=0))
+    #         f1, f2, f3, f4, exclude = vgg.vgg_16(tf.concat([self.canvas, self.target], axis=0))
     
-            canvas_f, target_f = tf.split(f3, 2, 0)
+    #         canvas_f, target_f = tf.split(f3, 2, 0)
     
-            # load vgg model
-            vgg_model_path = "vgg/vgg_16.ckpt"
-            vgg_vars = slim.get_variables_to_restore(include=['vgg_16'], exclude=exclude)
-            # vgg_init_var = slim.get_variables_to_restore(include=['vgg_16/fc6'])
-            init_fn = slim.assign_from_checkpoint_fn(vgg_model_path, vgg_vars)
-            init_fn(self.sess)
-            # tf.initialize_variables(var_list=vgg_init_var)
-            print('vgg s weights load done')
+    #         # load vgg model
+    #         vgg_model_path = "vgg/vgg_16.ckpt"
+    #         vgg_vars = slim.get_variables_to_restore(include=['vgg_16'], exclude=exclude)
+    #         # vgg_init_var = slim.get_variables_to_restore(include=['vgg_16/fc6'])
+    #         init_fn = slim.assign_from_checkpoint_fn(vgg_model_path, vgg_vars)
+    #         init_fn(self.sess)
+    #         # tf.initialize_variables(var_list=vgg_init_var)
+    #         print('vgg s weights load done')
         
-        self.canvas_f = canvas_f
-        self.target_f = target_f
+    #     self.canvas_f = canvas_f
+    #     self.target_f = target_f
 
     def positive_sharpen(self,i,overblur=False,coeff=8.): #no darken to original image
         # emphasize the edges
@@ -65,19 +73,57 @@ class Differ():
         #i2_tensor = tf.convert_to_tensor(i2)
         i1_in = np.expand_dims(i1,0)
         i2_in = np.expand_dims(i2,0)
+
+        i1_tensor = torch.tensor(i1_in).permute(0,3,1,2)
+        i2_tensor = torch.tensor(i2_in).permute(0,3,1,2)
+
+        i1_tensor = i1_tensor.to(self.device)
+        i2_tensor = i2_tensor.to(self.device)
+        # y = transformer(x)
+
+        # y = utils.normalize_batch(y)
+        # x = utils.normalize_batch(x)
+
+        features_i1 = self.vgg(i1_tensor)
+        features_i2 = self.vgg(i2_tensor)
         
-        # with tf.device('/gpu:1'):
-        canvas_f, target_f = self.sess.run([self.canvas_f, self.target_f], feed_dict ={self.canvas:i1_in, self.target:i2_in})
+        content_loss = mse_loss(features_i1.relu2_2, features_i2.relu2_2).mean(1).squeeze().cpu().numpy()
+        # content_loss = torch.
+
+        # print("content_loss shape: ",content_loss.shape)
             
-        d = (canvas_f - target_f)
-        d = d*d
-            
-        d = np.squeeze(d,0)
-        d = np.mean(d, -1)*0.012
-            
-        d = self.positive_sharpen(d,overblur=overblur)
+        d = self.positive_sharpen(content_loss,overblur=overblur)
         
         return d
+
+    def diff_vgg_batch(self, i1, i2, overblur=False):
+        # # use rgb
+        #i1_tensor = tf.convert_to_tensor(i1)
+        #i2_tensor = tf.convert_to_tensor(i2)
+        # i1_in = np.expand_dims(i1,0)
+        # i2_in = np.expand_dims(i2,0)
+
+        i1_tensor = torch.tensor(i1).permute(0,3,1,2)
+        i2_tensor = torch.tensor(i2).permute(0,3,1,2)
+
+        i1_tensor = i1_tensor.to(self.device)
+        i2_tensor = i2_tensor.to(self.device)
+        # y = transformer(x)
+
+        # y = utils.normalize_batch(y)
+        # x = utils.normalize_batch(x)
+
+        features_i1 = self.vgg(i1_tensor)
+        features_i2 = self.vgg(i2_tensor)
+        
+        content_loss = mse_loss(features_i1.relu2_2, features_i2.relu2_2).mean(1).cpu().numpy()
+        # content_loss = torch.
+
+        # print("content_loss shape: ",content_loss.shape)
+            
+        # d = self.positive_sharpen(content_loss,overblur=overblur)
+        
+        return content_loss
 
     def new_diff(self, i1=None, i2=None, alpha=0.4):
         dd = self.diff_vgg(i1,i2,overblur=True)
